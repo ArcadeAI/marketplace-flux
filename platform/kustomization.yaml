@@ -1,0 +1,15 @@
+# Phase 1 — platform controllers. Each HelmRelease installs a chart that
+# brings its OWN CRDs. The "secrets" Kustomization depends on this one
+# completing because it consumes those CRDs (Certificate, ClusterIssuer,
+# ClusterSecretStore, ExternalSecret).
+#
+# This was previously co-located with the secrets manifests in bootstrap/.
+# Flux applies all manifests in a Kustomization in one shot, which failed
+# the dry-run for ExternalSecret because the ESO CRD wasn't installed yet.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cert-manager-helmrelease.yaml
+  - ingress-nginx-helmrelease.yaml
+  - external-secrets-helmrelease.yaml
