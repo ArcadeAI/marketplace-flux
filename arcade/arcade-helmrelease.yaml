@@ -165,27 +165,25 @@ spec:
       replicaCount: 2
       hpa:
         enabled: false
-    # dockerRegistry intentionally disabled — Marketplace deploys pull images
-    # from the customer's private ACR. The ACR cache rule (provisioned in
-    # container-registry.bicep) hydrates each tag from quay.io/arcade/*
-    # lazily on the first kubelet pull. The platform Kustomization's
-    # image-prewarm Job pre-pulls all 5 chart images before this HelmRelease
-    # runs, so helm-install doesn't race the cache-rule propagation. AKS
-    # kubelet has AcrPull on the registry (granted in container-registry.bicep),
-    # so no in-cluster imagePullSecret is needed.
+    # Direct kubelet pull from quay.io/arcade/* via the chart's first-class
+    # `dockerRegistry.existingSecret` pattern. ESO materializes a K8s Secret
+    # named `arcade-quay-pull-secret` (type kubernetes.io/dockerconfigjson)
+    # from the corresponding KV secret; the chart adds that Secret to every
+    # Deployment's imagePullSecrets.
     dockerRegistry:
-      enabled: false
+      enabled: true
+      existingSecret: arcade-quay-pull-secret
     dashboard:
       image:
-        repository: ${ACR_LOGIN_SERVER}/arcade/dashboard
+        repository: quay.io/arcade/dashboard
         tag: "${IMAGE_TAG}"
     engine:
       image:
-        repository: ${ACR_LOGIN_SERVER}/arcade/engine
+        repository: quay.io/arcade/engine
         tag: "${IMAGE_TAG}"
     workerDefaults:
       image:
-        repository: ${ACR_LOGIN_SERVER}/arcade/worker
+        repository: quay.io/arcade/worker
         tag: "${IMAGE_TAG}"
       # ESO materializes this Secret from `arcade-worker-shared-secret` in KV
       # (newGuid-defaulted in resourceGroup.bicep). Replaces the chart's
@@ -194,9 +192,9 @@ spec:
       existingSecretKey: ARCADE_WORKER_SECRET
     experienceApi:
       image:
-        repository: ${ACR_LOGIN_SERVER}/arcade/experience-api
+        repository: quay.io/arcade/experience-api
         tag: "${IMAGE_TAG}"
     coordinator:
       image:
-        repository: ${ACR_LOGIN_SERVER}/arcade/coordinator
+        repository: quay.io/arcade/coordinator
         tag: "${IMAGE_TAG}"

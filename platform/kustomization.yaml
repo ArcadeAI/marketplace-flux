@@ -14,8 +14,3 @@ resources:
   - cert-manager-helmrelease.yaml
   - ingress-nginx-helmrelease.yaml
   - external-secrets-helmrelease.yaml
-  # Pre-warms the ACR Artifact Cache by triggering kubelet pulls against
-  # every chart image BEFORE the arcade Kustomization installs the HelmRelease.
-  # Without this, the first helm-install pod pulls race the cache-rule
-  # propagation delay and can hit ErrImagePull on cold-cluster deploys.
-  - image-prewarm.yaml
