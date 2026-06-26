@@ -14,6 +14,13 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
+  # Helm timeout per install/upgrade attempt. Default 5m is too tight on AKS —
+  # Azure Standard LoadBalancer IP allocation takes 2-3 min, AND the chart's
+  # `--wait` blocks until the LB Service has an external IP AND the 2 nginx
+  # controller replicas are Ready. Default timeout exceeded repeatedly with
+  # "context deadline exceeded" + Flux uninstall-remediation loop. 15m is
+  # plenty of headroom for fresh-cluster cold-start.
+  timeout: 15m
   releaseName: ingress-nginx
   targetNamespace: ingress-nginx
   install:
