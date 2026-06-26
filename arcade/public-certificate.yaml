@@ -4,10 +4,14 @@
 # ingress-shim — fine for a single host but it can't union multiple hostnames
 # into one SAN. The Marketplace deploy needs ONE cert covering apex, api.*,
 # coordinator.*, dashboard.*, experience.*, so we declare a single Certificate
-# CR here and point all Ingresses at the same `arcade-public-tls` Secret. The
-# chart's per-Ingress cert-manager annotations still trigger ingress-shim, but
-# ingress-shim is smart enough to skip when the named Secret already exists
-# and matches the requested DNS names.
+# CR here and point all Ingresses at the same `arcade-public-tls` Secret.
+#
+# To prevent ingress-shim from racing this CR (it watches every Ingress with a
+# cert-manager.io/cluster-issuer annotation and tries to create its own single-
+# host Certificate against the same Secret), the chart-rendered Ingresses have
+# that annotation stripped by the HelmRelease postRenderer in
+# arcade-helmrelease.yaml. The `tls.secretName` reference on each Ingress is
+# left intact so nginx terminates with the multi-SAN cert this CR provisions.
 #
 # The cert solves via HTTP-01 (letsencrypt-prod ClusterIssuer in bootstrap).
 # Requires the apex Ingress + the chart's per-host Ingresses to be reachable

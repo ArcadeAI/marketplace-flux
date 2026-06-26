@@ -45,6 +45,31 @@ spec:
     remediation:
       retries: 2
   timeout: 25m
+  # Strip the cert-manager.io/cluster-issuer annotation that the chart emits on
+  # every Ingress when ingress.letsEncrypt.enabled is true. With the annotation
+  # present, ingress-shim would create per-Ingress single-host Certificates
+  # targeting the same `arcade-public-tls` Secret that public-certificate.yaml
+  # owns, racing with the multi-SAN Certificate CR. Removing the annotation
+  # leaves the `tls.secretName` reference intact (nginx still terminates with
+  # the multi-SAN cert) but disables ingress-shim's Certificate-management
+  # behavior on these Ingresses.
+  postRenderers:
+    - kustomize:
+        patches:
+          # Strategic-merge patch — setting an annotation value to null removes
+          # the key. Tolerates Ingresses that don't have the annotation (the
+          # `remove` JSON Patch op would error on those). Targets every
+          # Ingress in apiGroup networking.k8s.io.
+          - target:
+              group: networking.k8s.io
+              kind: Ingress
+            patch: |
+              apiVersion: networking.k8s.io/v1
+              kind: Ingress
+              metadata:
+                name: ignored-by-target-selector
+                annotations:
+                  cert-manager.io/cluster-issuer: null
   chart:
     spec:
       chart: arcade
@@ -69,11 +94,18 @@ spec:
         existingSecret: arcade-postgres-admin-password
         existingSecretKey: password
     playground:
-      existingSecret: arcade-playground-api-key
-      existingSecretKey: api-key
+      # Chart consumes existingAnthropicApiKeySecret / existingAnthropicApiKeySecretKey
+      # (per deploy/charts/arcade/values.yaml). `existingSecret`/`existingSecretKey`
+      # are silently ignored — the chart falls back to its empty default and
+      # ships ANTHROPIC_API_KEY="" into experience-api, orphaning the ESO secret.
+      existingAnthropicApiKeySecret: arcade-playground-api-key
+      existingAnthropicApiKeySecretKey: api-key
     auth:
       upstreamIdp:
-        existingSecret: upstream-idp-creds
+        # Chart reads `auth.upstreamIdp.secretName`, NOT `existingSecret`. The
+        # latter is silently dropped by Helm; the chart's seed-idp-job consumes
+        # secretName via envFrom: secretRef.
+        secretName: upstream-idp-creds
       gatewayLogin:
         issuer: ${ENTRA_APP_ISSUER}
     arcade:
@@ -84,6 +116,14 @@ spec:
       publicIngressClass: nginx
       hostname: ${HOSTNAME}
       letsEncrypt:
+        # Enabled so the chart's per-host Ingresses render a `tls:` block
+        # pointing at `arcade-public-tls`. The cert-manager.io/cluster-issuer
+        # annotation that the chart emits on the same flag is stripped by the
+        # spec.postRenderers patch above — we own the cert via the explicit
+        # Certificate CR in public-certificate.yaml (single multi-SAN cert
+        # covering apex + 4 subdomains). Leaving ingress-shim active would
+        # race with that CR over the `arcade-public-tls` Secret.
+        enabled: true
         clusterIssuer: letsencrypt-prod
     gateway:
       enabled: false
