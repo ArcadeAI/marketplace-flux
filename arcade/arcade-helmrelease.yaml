@@ -93,6 +93,13 @@ spec:
     # without external dependencies for the Standard plan.
     redis:
       enabled: true
+      auth:
+        enabled: true
+        # ESO materializes this Secret from `arcade-redis-password` in KV
+        # (newGuid-defaulted in resourceGroup.bicep). Replaces the chart's
+        # literal `secret` default.
+        existingSecret: arcade-redis-password
+        existingSecretKey: REDIS_PASSWORD
     postgres:
       enabled: false
       host: ${POSTGRES_HOST}
@@ -178,6 +185,11 @@ spec:
       image:
         repository: ${ACR_LOGIN_SERVER}/arcade/worker
         tag: "${IMAGE_TAG}"
+      # ESO materializes this Secret from `arcade-worker-shared-secret` in KV
+      # (newGuid-defaulted in resourceGroup.bicep). Replaces the chart's
+      # literal `dev` default.
+      existingSecret: arcade-worker-shared-secret
+      existingSecretKey: ARCADE_WORKER_SECRET
     experienceApi:
       image:
         repository: ${ACR_LOGIN_SERVER}/arcade/experience-api
