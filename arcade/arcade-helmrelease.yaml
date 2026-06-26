@@ -32,11 +32,19 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
+  # HelmRelease lives in flux-system (same as the HelmRepository sourceRef)
+  # because the microsoft.flux AKS extension enforces multiTenancy by default —
+  # cross-namespace references between HelmRelease and HelmRepository would be
+  # blocked with "cross-namespace references are not allowed". The chart is
+  # released INTO the arcade namespace via spec.targetNamespace + storageNamespace.
   name: arcade
-  namespace: ${NAMESPACE}
+  namespace: flux-system
 spec:
   interval: 10m
   releaseName: ${RELEASE_NAME}
+  # The chart's resources land in this namespace; HelmRelease metadata stays in flux-system.
+  targetNamespace: ${NAMESPACE}
+  storageNamespace: ${NAMESPACE}
   install:
     createNamespace: true
     remediation:
