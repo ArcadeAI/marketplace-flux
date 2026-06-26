@@ -1,0 +1,14 @@
+# Arcade workload namespace. Created in the platform Kustomization (NOT the
+# arcade HelmRelease) because the secrets Kustomization's ExternalSecret
+# resources land in this namespace BEFORE the chart runs. If the namespace
+# doesn't exist when ESO tries to materialize the Secrets, the secrets
+# Kustomization fails with `namespaces "arcade" not found`.
+#
+# The chart's `install.createNamespace: true` would normally create this,
+# but it runs AFTER the secrets Kustomization per the dependsOn chain.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: arcade
+  labels:
+    azure.workload.identity/use: "true"
