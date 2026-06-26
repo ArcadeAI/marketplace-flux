@@ -1,0 +1,118 @@
+# Arcade chart install via Flux HelmRelease. Bootstrap Kustomization must
+# complete first (cert-manager + ingress-nginx + ESO + the ExternalSecrets
+# that materialize the chart's expected Secret names from Key Vault).
+#
+# Variable substitution at apply time (Flux postBuild.substitute):
+#   ${HOSTNAME}            — customer-supplied domain (e.g. arcade.example.com)
+#   ${NAMESPACE}           — release namespace (default: arcade)
+#   ${RELEASE_NAME}        — helm release name (default: arcade)
+#   ${CHART_OCI_URI}       — chart OCI registry URI (e.g. oci://public.ecr.aws/s5i6x9d1/charts/arcade)
+#   ${CHART_VERSION}       — pinned chart version
+#   ${POSTGRES_HOST}       — Azure Database for PostgreSQL FQDN
+#   ${POSTGRES_USER}       — Postgres admin username
+#   ${REDIS_HOST}          — bundled in-cluster Redis hostname (since AMR listKeys is denied — see capsol guidance://migrate-helm-deploy-to-k8s-extension)
+#   ${REDIS_PORT}          — Redis port
+#   ${ENTRA_APP_CLIENT_ID} — non-secret OIDC client ID
+#   ${ENTRA_APP_ISSUER}    — OIDC issuer URL
+#   ${LETSENCRYPT_EMAIL}   — ACME registration email
+#
+# Secrets are NOT in these substitutions — they're consumed via existingSecret
+# references that point at the ESO-materialized Secrets in this namespace.
+
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: arcade-charts
+  namespace: flux-system
+spec:
+  interval: 24h
+  type: oci
+  url: oci://public.ecr.aws/s5i6x9d1/charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: arcade
+  namespace: ${NAMESPACE}
+spec:
+  interval: 10m
+  releaseName: ${RELEASE_NAME}
+  install:
+    createNamespace: true
+    remediation:
+      retries: 2
+  upgrade:
+    remediation:
+      retries: 2
+  timeout: 25m
+  chart:
+    spec:
+      chart: arcade
+      version: ${CHART_VERSION}
+      sourceRef:
+        kind: HelmRepository
+        name: arcade-charts
+        namespace: flux-system
+  values:
+    # Bundled Redis subchart (in-cluster). AMR is intentionally not used in
+    # Marketplace because listKeys/action is denied by the Marketplace deny
+    # assignment; the chart's hand-rolled redis subchart serves the same role
+    # without external dependencies for the Standard plan.
+    redis:
+      enabled: true
+    postgres:
+      enabled: false
+      host: ${POSTGRES_HOST}
+      sslmode: require
+      auth:
+        username: ${POSTGRES_USER}
+        existingSecret: arcade-postgres-admin-password
+        existingSecretKey: password
+    playground:
+      existingSecret: arcade-playground-api-key
+      existingSecretKey: api-key
+    auth:
+      upstreamIdp:
+        existingSecret: upstream-idp-creds
+      gatewayLogin:
+        issuer: ${ENTRA_APP_ISSUER}
+    arcade:
+      dashboardUrl: https://${HOSTNAME}
+    ingress:
+      enabled: true
+      type: public
+      publicIngressClass: nginx
+      hostname: ${HOSTNAME}
+      letsEncrypt:
+        clusterIssuer: letsencrypt-prod
+    gateway:
+      enabled: false
+    environment: pro
+    coordinator:
+      replicaCount: 2
+      hpa:
+        enabled: false
+    dashboard:
+      replicaCount: 2
+      hpa:
+        enabled: false
+    experienceApi:
+      replicaCount: 2
+      hpa:
+        enabled: false
+    engine:
+      replicaCount: 2
+      hpa:
+        enabled: false
+      reconcile:
+        enabled: true
+    workerDefaults:
+      replicaCount: 2
+      hpa:
+        enabled: false
+    # dockerRegistry intentionally disabled — Marketplace deploys pull images
+    # from the public chart's default registries. The Quay mirror flow is
+    # out-of-band (mirror-images-to-quay.sh at chart publish time), not at
+    # customer deploy time.
+    dockerRegistry:
+      enabled: false
