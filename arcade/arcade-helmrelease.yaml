@@ -166,11 +166,13 @@ spec:
       hpa:
         enabled: false
     # dockerRegistry intentionally disabled — Marketplace deploys pull images
-    # from the customer's private ACR. The image-mirror Kustomization runs
-    # before this HelmRelease and imports each tag from quay.io/arcade/*
-    # into ${ACR_LOGIN_SERVER}/arcade/*. AKS kubelet has AcrPull on the
-    # registry (granted in container-registry.bicep), so no in-cluster
-    # imagePullSecret is needed.
+    # from the customer's private ACR. The ACR cache rule (provisioned in
+    # container-registry.bicep) hydrates each tag from quay.io/arcade/*
+    # lazily on the first kubelet pull. The platform Kustomization's
+    # image-prewarm Job pre-pulls all 5 chart images before this HelmRelease
+    # runs, so helm-install doesn't race the cache-rule propagation. AKS
+    # kubelet has AcrPull on the registry (granted in container-registry.bicep),
+    # so no in-cluster imagePullSecret is needed.
     dockerRegistry:
       enabled: false
     dashboard:
