@@ -1,0 +1,33 @@
+# Multi-SAN Let's Encrypt Certificate covering the apex + 4 subdomains.
+#
+# The Arcade chart issues per-Ingress single-host certs via cert-manager
+# ingress-shim — fine for a single host but it can't union multiple hostnames
+# into one SAN. The Marketplace deploy needs ONE cert covering apex, api.*,
+# coordinator.*, dashboard.*, experience.*, so we declare a single Certificate
+# CR here and point all Ingresses at the same `arcade-public-tls` Secret. The
+# chart's per-Ingress cert-manager annotations still trigger ingress-shim, but
+# ingress-shim is smart enough to skip when the named Secret already exists
+# and matches the requested DNS names.
+#
+# The cert solves via HTTP-01 (letsencrypt-prod ClusterIssuer in bootstrap).
+# Requires the apex Ingress + the chart's per-host Ingresses to be reachable
+# from the LE acme servers — i.e. requires DNS + the LB IP to be live.
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: arcade-public-tls
+  namespace: ${NAMESPACE}
+spec:
+  secretName: arcade-public-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - ${HOSTNAME}
+    - api.${HOSTNAME}
+    - coordinator.${HOSTNAME}
+    - dashboard.${HOSTNAME}
+    - experience.${HOSTNAME}
+  duration: 2160h     # 90 days
+  renewBefore: 360h   # 15 days

@@ -1,0 +1,77 @@
+# PodDisruptionBudgets for the Arcade workloads. The Arcade chart doesn't ship
+# PDBs in its templates (verified by survey of deploy/charts/arcade/), so they
+# live here at the marketplace-flux layer. Each gates on minAvailable: 1 to
+# guarantee a non-zero replica during node drains.
+#
+# Labels mirror the chart's standard `app: <service>` labels (per
+# templates/_helpers.tpl arcade.<svc>.selectorLabels). If the chart's selector
+# labels ever change, these PDBs need to be re-synced.
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ${RELEASE_NAME}-coordinator
+  namespace: ${NAMESPACE}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: coordinator
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ${RELEASE_NAME}-dashboard
+  namespace: ${NAMESPACE}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: arcade-dashboard
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ${RELEASE_NAME}-engine
+  namespace: ${NAMESPACE}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: arcade-engine
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ${RELEASE_NAME}-experience-api
+  namespace: ${NAMESPACE}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: experience-api
+      app.kubernetes.io/instance: ${RELEASE_NAME}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ${RELEASE_NAME}-worker-main
+  namespace: ${NAMESPACE}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: worker
+      worker-id: main
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/component: controller

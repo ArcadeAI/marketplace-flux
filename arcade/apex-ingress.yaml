@@ -1,0 +1,36 @@
+# Apex (bare-hostname) Ingress → dashboard. The Arcade chart's dashboard-ingress
+# only covers `dashboard.<host>` (the chart helper `arcade.hostname.dashboard`
+# always emits a subdomain prefix). The Marketplace deploy wants the root
+# `https://<HOSTNAME>` to land on the dashboard, so we add an Ingress here at
+# the marketplace-flux layer rather than modifying the chart.
+#
+# Shares the `arcade-public-tls` Secret with the multi-SAN Certificate below.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${RELEASE_NAME}-dashboard-apex
+  namespace: ${NAMESPACE}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  labels:
+    app.kubernetes.io/managed-by: marketplace-flux
+    app.kubernetes.io/component: dashboard-apex
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - ${HOSTNAME}
+      secretName: arcade-public-tls
+  rules:
+    - host: ${HOSTNAME}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ${RELEASE_NAME}-dashboard
+                port:
+                  number: 80
