@@ -143,28 +143,6 @@ spec:
     gateway:
       enabled: false
     environment: pro
-    coordinator:
-      replicaCount: 2
-      hpa:
-        enabled: false
-    dashboard:
-      replicaCount: 2
-      hpa:
-        enabled: false
-    experienceApi:
-      replicaCount: 2
-      hpa:
-        enabled: false
-    engine:
-      replicaCount: 2
-      hpa:
-        enabled: false
-      reconcile:
-        enabled: true
-    workerDefaults:
-      replicaCount: 2
-      hpa:
-        enabled: false
     # Direct kubelet pull from quay.io/arcade/* via the chart's first-class
     # `dockerRegistry.existingSecret` pattern. ESO materializes a K8s Secret
     # named `arcade-quay-pull-secret` (type kubernetes.io/dockerconfigjson)
@@ -173,15 +151,40 @@ spec:
     dockerRegistry:
       enabled: true
       existingSecret: arcade-quay-pull-secret
+    coordinator:
+      replicaCount: 2
+      hpa:
+        enabled: false
+      image:
+        repository: quay.io/arcade/coordinator
+        tag: "${IMAGE_TAG}"
     dashboard:
+      replicaCount: 2
+      hpa:
+        enabled: false
       image:
         repository: quay.io/arcade/dashboard
         tag: "${IMAGE_TAG}"
+    experienceApi:
+      replicaCount: 2
+      hpa:
+        enabled: false
+      image:
+        repository: quay.io/arcade/experience-api
+        tag: "${IMAGE_TAG}"
     engine:
+      replicaCount: 2
+      hpa:
+        enabled: false
+      reconcile:
+        enabled: true
       image:
         repository: quay.io/arcade/engine
         tag: "${IMAGE_TAG}"
     workerDefaults:
+      replicaCount: 2
+      hpa:
+        enabled: false
       image:
         repository: quay.io/arcade/worker
         tag: "${IMAGE_TAG}"
@@ -190,11 +193,3 @@ spec:
       # literal `dev` default.
       existingSecret: arcade-worker-shared-secret
       existingSecretKey: ARCADE_WORKER_SECRET
-    experienceApi:
-      image:
-        repository: quay.io/arcade/experience-api
-        tag: "${IMAGE_TAG}"
-    coordinator:
-      image:
-        repository: quay.io/arcade/coordinator
-        tag: "${IMAGE_TAG}"
