@@ -159,8 +159,30 @@ spec:
       hpa:
         enabled: false
     # dockerRegistry intentionally disabled — Marketplace deploys pull images
-    # from the public chart's default registries. The Quay mirror flow is
-    # out-of-band (mirror-images-to-quay.sh at chart publish time), not at
-    # customer deploy time.
+    # from the customer's private ACR. The image-mirror Kustomization runs
+    # before this HelmRelease and imports each tag from quay.io/arcade/*
+    # into ${ACR_LOGIN_SERVER}/arcade/*. AKS kubelet has AcrPull on the
+    # registry (granted in container-registry.bicep), so no in-cluster
+    # imagePullSecret is needed.
     dockerRegistry:
       enabled: false
+    dashboard:
+      image:
+        repository: ${ACR_LOGIN_SERVER}/arcade/dashboard
+        tag: "${IMAGE_TAG}"
+    engine:
+      image:
+        repository: ${ACR_LOGIN_SERVER}/arcade/engine
+        tag: "${IMAGE_TAG}"
+    workerDefaults:
+      image:
+        repository: ${ACR_LOGIN_SERVER}/arcade/worker
+        tag: "${IMAGE_TAG}"
+    experienceApi:
+      image:
+        repository: ${ACR_LOGIN_SERVER}/arcade/experience-api
+        tag: "${IMAGE_TAG}"
+    coordinator:
+      image:
+        repository: ${ACR_LOGIN_SERVER}/arcade/coordinator
+        tag: "${IMAGE_TAG}"

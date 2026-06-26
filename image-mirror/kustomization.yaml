@@ -1,0 +1,14 @@
+# Phase 1.5 — image mirror. Runs after `platform` (needs the Flux CRDs
+# already installed) and before `arcade` (the chart's image.repository
+# overrides point at the customer's ACR, which is empty until this Job
+# completes).
+#
+# Single Job, runs to completion. Flux's wait:true on the Kustomization
+# treats Job .status.succeeded >= 1 as healthy.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - service-account.yaml
+  - script-configmap.yaml
+  - job.yaml
