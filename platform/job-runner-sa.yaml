@@ -1,0 +1,27 @@
+# ServiceAccount used by the in-cluster materializer Jobs (redis-key,
+# quay-creds) in the secrets Kustomization. It's federated to the ESO
+# user-assigned managed identity (the bicep workload-identity module declares
+# the federated credential for subject
+# system:serviceaccount:arcade:arcade-external-secrets-reader), but nothing
+# else creates the SA in-cluster — the ClusterSecretStore uses the ESO
+# controller SA in the external-secrets namespace instead. The Jobs run in the
+# arcade namespace and a pod's SA must be local to its namespace, so we create
+# it here.
+#
+# The azure.workload.identity/client-id annotation binds it to the ESO UAMI;
+# the webhook then injects AZURE_CLIENT_ID / AZURE_FEDERATED_TOKEN_FILE into
+# pods that use this SA and carry the use=true label. tenant-id is omitted
+# (defaults to the cluster tenant, which is where the UAMI lives).
+#
+# Created in the platform Kustomization (after arcade-namespace, before the
+# secrets Kustomization's Jobs) so the SA exists when the Job controllers try
+# to create pods.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: arcade-external-secrets-reader
+  namespace: arcade
+  annotations:
+    azure.workload.identity/client-id: "${ESO_CLIENT_ID}"
+  labels:
+    azure.workload.identity/use: "true"

@@ -11,6 +11,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - arcade-namespace.yaml
+  # SA for the in-cluster materializer Jobs (redis-key, quay-creds) that run in
+  # the secrets Kustomization. Federated to the ESO UAMI; created here so it
+  # exists before those Jobs try to schedule pods.
+  - job-runner-sa.yaml
   - cert-manager-helmrelease.yaml
   - ingress-nginx-helmrelease.yaml
   - external-secrets-helmrelease.yaml
