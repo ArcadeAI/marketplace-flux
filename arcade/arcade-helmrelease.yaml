@@ -87,19 +87,23 @@ spec:
         name: arcade-charts
         namespace: flux-system
   values:
-    # Bundled Redis subchart (in-cluster). AMR is intentionally not used in
-    # Marketplace because listKeys/action is denied by the Marketplace deny
-    # assignment; the chart's hand-rolled redis subchart serves the same role
-    # without external dependencies for the Standard plan.
+    # Azure Managed Redis (external). The bundled in-cluster subchart is
+    # disabled — the redis-key Job (secrets Kustomization) lists the AMR
+    # access key at runtime via an MRG-resident workload identity (exempt
+    # from the deny) and writes it to the arcade-redis-password Secret, which
+    # the chart's app deployments consume via existingSecret. AMR speaks TLS
+    # on an auto-allocated port; EnterpriseCluster policy presents a single
+    # endpoint so the chart's standalone client connects directly.
     redis:
-      enabled: true
+      enabled: false
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
       auth:
         enabled: true
-        # ESO materializes this Secret from `arcade-redis-password` in KV
-        # (newGuid-defaulted in resourceGroup.bicep). Replaces the chart's
-        # literal `secret` default.
         existingSecret: arcade-redis-password
         existingSecretKey: REDIS_PASSWORD
+      tls:
+        enabled: true
     postgres:
       enabled: false
       host: ${POSTGRES_HOST}
