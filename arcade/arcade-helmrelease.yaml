@@ -162,6 +162,11 @@ spec:
       image:
         repository: quay.io/arcade/coordinator
         tag: "${IMAGE_TAG}"
+      # Trust the ingress-nginx peer so uvicorn honors X-Forwarded-Proto
+      # (https terminated at nginx); chart default 127.0.0.1 trusts only
+      # loopback. ClusterIP + nginx-only ingress makes "*" safe.
+      proxyHeaders:
+        forwardedAllowIps: "*"
     dashboard:
       replicaCount: 2
       hpa:
