@@ -33,4 +33,4 @@ spec:
               service:
                 name: ${RELEASE_NAME}-dashboard
                 port:
-                  number: 80
+                  number: 8080
