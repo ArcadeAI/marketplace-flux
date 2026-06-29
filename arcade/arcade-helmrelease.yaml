@@ -161,7 +161,6 @@ spec:
         enabled: false
       image:
         repository: quay.io/arcade/coordinator
-        tag: "${IMAGE_TAG}"
       # Trust the ingress-nginx peer so uvicorn honors X-Forwarded-Proto
       # (https terminated at nginx); chart default 127.0.0.1 trusts only
       # loopback. ClusterIP + nginx-only ingress makes "*" safe.
@@ -173,14 +172,12 @@ spec:
         enabled: false
       image:
         repository: quay.io/arcade/dashboard
-        tag: "${IMAGE_TAG}"
     experienceApi:
       replicaCount: 2
       hpa:
         enabled: false
       image:
         repository: quay.io/arcade/experience-api
-        tag: "${IMAGE_TAG}"
     engine:
       replicaCount: 2
       hpa:
@@ -189,14 +186,12 @@ spec:
         enabled: true
       image:
         repository: quay.io/arcade/engine
-        tag: "${IMAGE_TAG}"
     workerDefaults:
       replicaCount: 2
       hpa:
         enabled: false
       image:
         repository: quay.io/arcade/worker
-        tag: "${IMAGE_TAG}"
       # ESO materializes this Secret from `arcade-worker-shared-secret` in KV
       # (newGuid-defaulted in resourceGroup.bicep). Replaces the chart's
       # literal `dev` default.
