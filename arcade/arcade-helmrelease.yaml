@@ -78,6 +78,23 @@ spec:
                 name: ignored-by-target-selector
                 annotations:
                   cert-manager.io/cluster-issuer: null
+          # Reloader trigger: roll the coordinator when the externally-managed
+          # `upstream-idp-creds` Secret changes. The chart's checksum/* pod
+          # annotations only hash chart-templated secrets, so an External Secrets
+          # update to the Entra creds (corrected or rotated post-deploy) would
+          # otherwise leave the one-shot static-user-source reconcile (coordinator
+          # startup) stale until a manual restart. Targets only the coordinator.
+          - target:
+              group: apps
+              kind: Deployment
+              labelSelector: app.kubernetes.io/component=coordinator
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: ignored-by-target-selector
+                annotations:
+                  secret.reloader.stakater.com/reload: upstream-idp-creds
   chart:
     spec:
       chart: arcade

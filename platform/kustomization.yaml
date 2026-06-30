@@ -18,3 +18,6 @@ resources:
   - cert-manager-helmrelease.yaml
   - ingress-nginx-helmrelease.yaml
   - external-secrets-helmrelease.yaml
+  # Rolls the coordinator when ESO updates upstream-idp-creds, re-running the
+  # one-shot gateway User Source reconcile against corrected/rotated Entra creds.
+  - reloader-helmrelease.yaml

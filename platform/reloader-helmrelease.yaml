@@ -1,0 +1,57 @@
+# Stakater Reloader — rolls a workload when a Secret/ConfigMap it depends on
+# changes. Needed because the gateway's static User Source is reconciled once
+# at coordinator startup from creds frozen into the pod env (secretKeyRef), and
+# `upstream-idp-creds` is materialized at runtime by External Secrets — so the
+# chart's checksum/* pod annotations (which only hash chart-templated secrets)
+# never trigger a restart when the Entra credentials are corrected or rotated
+# after boot. Reloader watches that external Secret and rolls the coordinator,
+# which re-runs the reconcile against the fresh creds. The coordinator opts in
+# via `secret.reloader.stakater.com/reload` (arcade HelmRelease postRenderer);
+# nothing else is touched.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: stakater
+  namespace: flux-system
+spec:
+  interval: 24h
+  url: https://stakater.github.io/stakater-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: reloader
+  namespace: flux-system
+spec:
+  interval: 10m
+  releaseName: reloader
+  targetNamespace: reloader
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  chart:
+    spec:
+      chart: reloader
+      version: '2.2.x'
+      sourceRef:
+        kind: HelmRepository
+        name: stakater
+        namespace: flux-system
+  values:
+    reloader:
+      # Only roll workloads carrying an explicit reloader annotation. Without
+      # this off, every workload would restart on any referenced Secret change.
+      autoReloadAll: false
+      watchGlobally: true
+      deployment:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 50m
+            memory: 128Mi
