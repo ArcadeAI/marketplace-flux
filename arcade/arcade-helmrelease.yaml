@@ -95,6 +95,29 @@ spec:
                 name: ignored-by-target-selector
                 annotations:
                   secret.reloader.stakater.com/reload: upstream-idp-creds
+          # Sign-out fix: the coordinator validates post_logout_redirect_uri as an
+          # exact match against ARCADE_IDENTITY_POST_LOGOUT_REDIRECT_URI. The chart
+          # leaves that unset, so it auto-derives from the experience-api host —
+          # but the dashboard's sign-out button sends the apex origin, so they
+          # never match and /signin/oidc/end-session returns 400. Pin it to the
+          # apex. Strategic-merge appends to the coordinator container's env.
+          - target:
+              group: apps
+              kind: Deployment
+              labelSelector: app.kubernetes.io/component=coordinator
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: ignored-by-target-selector
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: coordinator
+                        env:
+                          - name: ARCADE_IDENTITY_POST_LOGOUT_REDIRECT_URI
+                            value: https://${HOSTNAME}/
   chart:
     spec:
       chart: arcade
